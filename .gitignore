@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# VSCode settings
+.vscode/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+
+# Python virtual environment
+venv/
+env/
+
+# cookies file (local only, don't upload)
+cookies.txt
+
+# Logs and temp
+*.log
+temp/
+
+# Render deploy cache
+*.render/
+
+# Pip wheel files
+*.whl
+
+# Pytest cache
+.pytest_cache/
+
+# MyPy, coverage, etc.
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
