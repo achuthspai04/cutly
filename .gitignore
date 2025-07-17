@@ -22,6 +22,7 @@ env/
 
 # cookies file (local only, don't upload)
 cookies.txt
+cookies.b64.txt
 
 # Logs and temp
 *.log
