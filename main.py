@@ -71,14 +71,18 @@ def download_clip(url: str, start: str, end: str, audio_only=False):
             "ranges": [(start_sec, end_sec)]
         },
         "format": "bestaudio/best" if audio_only else "bestvideo+bestaudio/best",
-        "postprocessors": [{
-            "key": "FFmpegExtractAudio" if audio_only else "FFmpegVideoConvertor",
-            "preferredcodec": "mp3" if audio_only else "mp4",
-        }],
         "quiet": True,
         "noplaylist": True,
         "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None
     }
+    
+    # Add postprocessor only for audio extraction
+    if audio_only:
+        ydl_opts["postprocessors"] = [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192",
+        }]
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
