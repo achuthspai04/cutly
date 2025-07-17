@@ -40,7 +40,7 @@ else:
 @app.get("/")
 def root():
     return {
-        "message": "Klippd - YouTube Video Clipper API",
+        "message": "Cutly - YouTube Video Clipper API",
         "endpoints": {
             "/clip": "Download video clip (MP4) from YouTube",
             "/voice": "Download audio clip (MP3) from YouTube",
