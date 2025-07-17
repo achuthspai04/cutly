@@ -34,7 +34,7 @@ if COOKIES_B64:
     except Exception as e:
         print(f"❌ Error decoding cookies: {e}")
 else:
-    print("⚠️ COOKIES_B64 environment variable not set.")
+    print("⚠️ COOKIES_B64 environment variable not set. App will work without cookies but may have limitations.")
 
 
 @app.get("/")
@@ -44,7 +44,8 @@ def root():
         "endpoints": {
             "/clip": "Download video clip (MP4) from YouTube",
             "/voice": "Download audio clip (MP3) from YouTube",
-            "/cleanup": "Manual cleanup of temp files"
+            "/cleanup": "Manual cleanup of temp files",
+            "/status": "Check API health and capabilities"
         },
         "usage": {
             "clip": "/clip?url=YOUTUBE_URL&start=HH:MM:SS&end=HH:MM:SS",
@@ -72,18 +73,27 @@ def download_clip(url: str, start: str, end: str, audio_only=False):
     ext = "mp3" if audio_only else "mp4"
     out_name = f"output.{ext}"
 
+    # Base options that work without cookies
     ydl_opts = {
         "outtmpl": out_name,
         "format": "bestaudio/best" if audio_only else "bestvideo+bestaudio/best",
         "quiet": True,
         "noplaylist": True,
-        "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,
+        "ignoreerrors": True,  # Continue on non-fatal errors
         # Use external_downloader with ffmpeg for better clipping
         "external_downloader": "ffmpeg",
         "external_downloader_args": {
             "ffmpeg_i": ["-ss", str(start_sec), "-t", str(duration)]
         }
     }
+    
+    # Only add cookies if file exists and is valid
+    cookies_file = "cookies.txt"
+    if os.path.exists(cookies_file) and os.path.getsize(cookies_file) > 0:
+        ydl_opts["cookiefile"] = cookies_file
+        print("📄 Using cookies file for authentication")
+    else:
+        print("⚠️ No valid cookies found, proceeding without authentication")
     
     # Add postprocessor only for audio extraction
     if audio_only:
@@ -96,8 +106,25 @@ def download_clip(url: str, start: str, end: str, audio_only=False):
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
+        
+        # Check if file was created successfully
+        if not os.path.exists(out_name):
+            raise RuntimeError("Download completed but output file not found")
+            
         return out_name
     except Exception as e:
+        # Try again without cookies if cookies were the issue
+        if "cookies" in str(e).lower() and "cookiefile" in ydl_opts:
+            print("🔄 Retrying without cookies due to authentication error...")
+            ydl_opts.pop("cookiefile", None)
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([url])
+                if os.path.exists(out_name):
+                    return out_name
+            except Exception as retry_error:
+                raise RuntimeError(f"Download failed even without cookies: {retry_error}")
+        
         raise RuntimeError(str(e))
 
 
@@ -127,6 +154,24 @@ def cleanup():
             os.remove(f)
             removed.append(f)
     return {"status": "done", "removed": removed}
+
+
+@app.get("/status")
+def status():
+    """Check API status and capabilities"""
+    status_info = {
+        "status": "online",
+        "ffmpeg_available": shutil.which("ffmpeg") is not None,
+        "cookies_available": os.path.exists("cookies.txt") and os.path.getsize("cookies.txt") > 0,
+        "yt_dlp_version": yt_dlp.__version__
+    }
+    
+    if status_info["cookies_available"]:
+        status_info["cookies_status"] = "valid cookies loaded"
+    else:
+        status_info["cookies_status"] = "no cookies (may limit some videos)"
+    
+    return status_info
 
 
 if __name__ == "__main__":
