@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: cutly
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: COOKIES_B64
+        sync: false  # Set this manually in Render dashboard
+    healthCheckPath: /

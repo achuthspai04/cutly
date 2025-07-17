@@ -2,11 +2,18 @@ import os
 import base64
 import uvicorn
 import yt_dlp
+import shutil
 from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# Check if FFmpeg is available
+if not shutil.which("ffmpeg"):
+    print("⚠️ FFmpeg not found! Some features may not work.")
+else:
+    print("✅ FFmpeg found.")
 
 # Enable CORS for testing/demo
 app.add_middleware(
@@ -67,13 +74,15 @@ def download_clip(url: str, start: str, end: str, audio_only=False):
 
     ydl_opts = {
         "outtmpl": out_name,
-        "download_ranges": {
-            "ranges": [(start_sec, end_sec)]
-        },
         "format": "bestaudio/best" if audio_only else "bestvideo+bestaudio/best",
         "quiet": True,
         "noplaylist": True,
-        "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None
+        "cookiefile": "cookies.txt" if os.path.exists("cookies.txt") else None,
+        # Use external_downloader with ffmpeg for better clipping
+        "external_downloader": "ffmpeg",
+        "external_downloader_args": {
+            "ffmpeg_i": ["-ss", str(start_sec), "-t", str(duration)]
+        }
     }
     
     # Add postprocessor only for audio extraction
@@ -121,4 +130,5 @@ def cleanup():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    port = int(os.environ.get("PORT", 8000))  # Use Render's PORT env var
+    uvicorn.run(app, host="0.0.0.0", port=port)
