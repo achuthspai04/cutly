@@ -61,7 +61,7 @@ uvicorn main:app --reload --port 8080
 
 ## Deployment
 
-The API is ready for deployment on platforms like Render, Railway, or Fly.io using the included Dockerfile.
+might need too workaround ways so that yt doesnt flag this as a bot.
 
 ## File Management
 
